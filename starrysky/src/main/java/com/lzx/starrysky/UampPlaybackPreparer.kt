@@ -16,6 +16,7 @@
 
 package com.lzx.starrysky
 
+import android.content.Context
 import android.net.Uri
 import android.os.Bundle
 import android.os.ResultReceiver
@@ -33,12 +34,13 @@ import com.google.android.exoplayer2.ExoPlayer
 import com.google.android.exoplayer2.Player
 import com.google.android.exoplayer2.ext.mediasession.MediaSessionConnector
 import com.google.android.exoplayer2.upstream.DataSource
+import com.lzx.starrysky.model.MusicProvider
 
 /**
  * Class to bridge UAMP to the ExoPlayer MediaSession extension.
  */
 class UampPlaybackPreparer(
-        private val musicSource: MusicSource,
+        private val context: Context,
         private val exoPlayer: ExoPlayer,
         private val dataSourceFactory: DataSource.Factory
 ) : MediaSessionConnector.PlaybackPreparer {
@@ -53,8 +55,8 @@ class UampPlaybackPreparer(
 
 
     override fun onPrepareFromMediaId(mediaId: String?, extras: Bundle?) {
-        musicSource.whenReady {
-            val itemToPlay: MediaMetadataCompat? = musicSource.find { item ->
+        MusicProvider.getInstance(context).whenReady {
+            val itemToPlay: MediaMetadataCompat? = MusicProvider.getInstance(context).find { item ->
                 item.id == mediaId
             }
             if (itemToPlay == null) {
@@ -74,8 +76,8 @@ class UampPlaybackPreparer(
     }
 
     override fun onPrepareFromSearch(query: String?, extras: Bundle?) {
-        musicSource.whenReady {
-            val metadataList = musicSource.search(query ?: "", extras ?: Bundle.EMPTY)
+        MusicProvider.getInstance(context).whenReady {
+            val metadataList = MusicProvider.getInstance(context).search(query ?: "", extras ?: Bundle.EMPTY)
             if (metadataList.isNotEmpty()) {
                 val mediaSource = metadataList.toMediaSource(dataSourceFactory)
                 exoPlayer.prepare(mediaSource)
@@ -95,7 +97,7 @@ class UampPlaybackPreparer(
     ) = Unit
 
     private fun buildPlaylist(item: MediaMetadataCompat): List<MediaMetadataCompat> =
-            musicSource.filter { it.album == item.album }.sortedBy { it.trackNumber }
+            MusicProvider.getInstance(context).filter { it.album == item.album }.sortedBy { it.trackNumber }
 }
 
 private const val TAG = "MediaSessionHelper"

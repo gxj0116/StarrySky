@@ -58,8 +58,8 @@ class MusicService : androidx.media.MediaBrowserServiceCompat() {
     private lateinit var mediaSession: MediaSessionCompat //媒体会画
     private lateinit var mediaController: MediaControllerCompat //媒体控制器
     private lateinit var becomingNoisyReceiver: BecomingNoisyReceiver //线控相关广播
-    private lateinit var notificationManager: NotificationManagerCompat //通知栏管理
-    private lateinit var notificationBuilder: NotificationBuilder
+    //private lateinit var notificationManager: NotificationManagerCompat //通知栏管理
+    //private lateinit var notificationBuilder: NotificationBuilder
     private lateinit var mediaSource: MusicProvider //
     private lateinit var mediaSessionConnector: MediaSessionConnector
     private lateinit var packageValidator: PackageValidator
@@ -104,8 +104,8 @@ class MusicService : androidx.media.MediaBrowserServiceCompat() {
             it.registerCallback(MediaControllerCallback())
         }
 
-        notificationBuilder = NotificationBuilder(this)
-        notificationManager = NotificationManagerCompat.from(this)
+        //notificationBuilder = NotificationBuilder(this)
+        //notificationManager = NotificationManagerCompat.from(this)
 
         becomingNoisyReceiver = BecomingNoisyReceiver(context = this, sessionToken = mediaSession.sessionToken)
 
@@ -116,7 +116,7 @@ class MusicService : androidx.media.MediaBrowserServiceCompat() {
                     this, Util.getUserAgent(this, UAMP_USER_AGENT), null)
 
             val playbackPreparer = UampPlaybackPreparer(
-                    mediaSource,
+                    this,
                     exoPlayer,
                     dataSourceFactory)
 
@@ -151,21 +151,23 @@ class MusicService : androidx.media.MediaBrowserServiceCompat() {
      * 获取数据
      */
     override fun onLoadChildren(parentMediaId: String, result: androidx.media.MediaBrowserServiceCompat.Result<List<MediaItem>>) {
-        mediaSource.loadSongInfoAnsy()
-
-        val resultsSent = mediaSource.whenReady { successfullyInitialized ->
-            if (successfullyInitialized) {
-                val children = browseTree[parentMediaId]?.map { item ->
-                    MediaItem(item.description, item.flag)
+        mediaSource.loadSongInfoAsync(object : MusicProvider.AsyncCallBack {
+            override fun onSuccess() {
+                val resultsSent = mediaSource.whenReady { successfullyInitialized ->
+                    if (successfullyInitialized) {
+                        val children = browseTree[parentMediaId]?.map { item ->
+                            MediaItem(item.description, item.flag)
+                        }
+                        result.sendResult(children) //返回结果
+                    } else {
+                        result.sendError(null)
+                    }
                 }
-                result.sendResult(children) //返回结果
-            } else {
-                result.sendError(null)
+                if (!resultsSent) {
+                    result.detach()
+                }
             }
-        }
-        if (!resultsSent) {
-            result.detach()
-        }
+        })
     }
 
     private fun removeNowPlayingNotification() {
@@ -188,24 +190,24 @@ class MusicService : androidx.media.MediaBrowserServiceCompat() {
             }
 
             // Skip building a notification when state is "none".
-            val notification = if (updatedState != PlaybackStateCompat.STATE_NONE) {
-                notificationBuilder.buildNotification(mediaSession.sessionToken)
-            } else {
-                null
-            }
+//            val notification = if (updatedState != PlaybackStateCompat.STATE_NONE) {
+//                notificationBuilder.buildNotification(mediaSession.sessionToken)
+//            } else {
+//                null
+//            }
 
             when (updatedState) {
                 PlaybackStateCompat.STATE_BUFFERING,
                 PlaybackStateCompat.STATE_PLAYING -> {
                     becomingNoisyReceiver.register()
 
-                    if (!isForegroundService) {
-                        startService(Intent(applicationContext, this@MusicService.javaClass))
-                        startForeground(NOW_PLAYING_NOTIFICATION, notification)
-                        isForegroundService = true
-                    } else if (notification != null) {
-                        notificationManager.notify(NOW_PLAYING_NOTIFICATION, notification)
-                    }
+//                    if (!isForegroundService) {
+//                        startService(Intent(applicationContext, this@MusicService.javaClass))
+//                        startForeground(NOW_PLAYING_NOTIFICATION, notification)
+//                        isForegroundService = true
+//                    } else if (notification != null) {
+//                        notificationManager.notify(NOW_PLAYING_NOTIFICATION, notification)
+//                    }
                 }
                 else -> {
                     becomingNoisyReceiver.unregister()
@@ -219,11 +221,11 @@ class MusicService : androidx.media.MediaBrowserServiceCompat() {
                             stopSelf()
                         }
 
-                        if (notification != null) {
-                            notificationManager.notify(NOW_PLAYING_NOTIFICATION, notification)
-                        } else {
-                            removeNowPlayingNotification()
-                        }
+//                        if (notification != null) {
+//                            notificationManager.notify(NOW_PLAYING_NOTIFICATION, notification)
+//                        } else {
+//                            removeNowPlayingNotification()
+//                        }
                     }
                 }
             }

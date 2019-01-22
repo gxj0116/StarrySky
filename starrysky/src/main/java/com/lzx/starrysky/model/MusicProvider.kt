@@ -1,5 +1,7 @@
 package com.lzx.starrysky.model
 
+import android.annotation.SuppressLint
+import android.content.ComponentName
 import android.content.Context
 import android.os.AsyncTask
 import android.support.v4.media.MediaBrowserCompat
@@ -9,6 +11,7 @@ import com.bumptech.glide.Glide
 import com.bumptech.glide.RequestManager
 import com.bumptech.glide.load.engine.DiskCacheStrategy
 import com.bumptech.glide.request.RequestOptions
+import com.lzx.starrysky.MediaSessionConnection
 import com.lzx.starrysky.R
 import com.lzx.starrysky.extensions.*
 import com.lzx.starrysky.library.*
@@ -18,9 +21,23 @@ import java.util.Collections
 import java.util.concurrent.TimeUnit
 
 class MusicProvider(context: Context) : AbstractMusicSource() {
-    private var songInfos: List<SongInfo>? = null
-    private var context: Context
-    private var catalog: List<MediaMetadataCompat> = emptyList()
+      var songInfos: ArrayList<SongInfo>? = null
+      var context: Context
+      var catalog: List<MediaMetadataCompat> = emptyList()
+
+    //单例
+    companion object {
+        // For Singleton instantiation.
+        @SuppressLint("StaticFieldLeak")
+        @Volatile
+        private var instance: MusicProvider? = null
+
+        fun getInstance(context: Context) =
+                instance ?: synchronized(this) {
+                    instance ?: MusicProvider(context)
+                            .also { instance = it }
+                }
+    }
 
     val shuffledMusic: Iterable<SongInfo>
         get() {
@@ -31,18 +48,40 @@ class MusicProvider(context: Context) : AbstractMusicSource() {
         }
 
     init {
-        songInfos = Collections.synchronizedList(ArrayList())
+        songInfos = ArrayList()
         this.context = context
+
+        val s1 = SongInfo()
+        s1.songId = "111"
+        s1.songUrl = "http://music.163.com/song/media/outer/url?id=317151.mp3"
+
+        val s2 = SongInfo()
+        s2.songId = "222"
+        s2.songUrl = "http://music.163.com/song/media/outer/url?id=281951.mp3"
+
+        val s3 = SongInfo()
+        s3.songId = "333"
+        s3.songUrl = "http://music.163.com/song/media/outer/url?id=25906124.mp3"
+
+
+        songInfos!!.add(s1)
+        songInfos!!.add(s2)
+        songInfos!!.add(s3)
     }
 
 
-    fun loadSongInfoAnsy() {
+    fun loadSongInfoAsync(callback: AsyncCallBack) {
         state = STATE_INITIALIZING
 
         UpdateCatalogTask(Glide.with(context)) { mediaItems ->
             catalog = mediaItems
             state = STATE_INITIALIZED
+            callback.onSuccess()
         }.execute(songInfos)
+    }
+
+    interface AsyncCallBack {
+        fun onSuccess()
     }
 
     override fun iterator(): Iterator<MediaMetadataCompat> = catalog.iterator()

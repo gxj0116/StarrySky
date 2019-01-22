@@ -121,6 +121,7 @@ class MediaSessionConnection(context: Context, serviceComponent: ComponentName) 
             }
             //通知更新
             isConnected.postValue(true)
+            transportControls.playFromMediaId("111",null);
         }
 
         //当客户端与媒体浏览器断开连接时调用。
